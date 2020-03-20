@@ -6,7 +6,7 @@ import (
 )
 
 // Refactor : Return Package Object instead string and bool
-func findPackage(name string) (string, bool) {
+func findPackage(name string) (Package, bool) {
 	repo := getLocalRepo()
 	found := false
 	fpath := ""
@@ -14,36 +14,34 @@ func findPackage(name string) (string, bool) {
 		found = isExist(path+"/"+name) && isExist(path+"/"+name+"/dist.toml")
 		if found {
 			fpath = (path + "/" + name)
-			return fpath, found
+			return tomlToPackage(fpath + "/dist.toml"), found
 		}
 	}
 	fmt.Println("Package not found: ", name)
 	os.Exit(1)
-	return fpath, found
+	p := Package{}
+	return p, false
 }
 
 func getPackage(name string) {
-	path, _ := findPackage(name)
-	p := tomlToPackage(path + "/dist.toml")
+	p, _ := findPackage(name)
 	fmt.Println("[*] Fetching resource ...")
 	p.Download()
 }
 
 func installPackage(name string) {
-	path, found := findPackage(name)
+	p, found := findPackage(name)
 	if !found {
 		os.Exit(1)
 	}
-	p := tomlToPackage(path)
 	p.Download()
 }
 
 func extractPackage(name string) {
-	path, found := findPackage(name)
+	p, found := findPackage(name)
 	if !found {
 		os.Exit(1)
 	}
-	p := tomlToPackage(path + "/dist.toml")
 	fmt.Println("[", name, "] Extarcting resources...")
 	p.extract("")
 }

@@ -122,7 +122,7 @@ func (p Package) extract(path string) {
 func (p Package) details() {
 	fmt.Println("Nama : ", p.Name)
 	fmt.Println("Versi : ", p.Version)
-	p.Download()
+	//p.Download()
 	for _, el := range p.Depends {
 		fmt.Println("Depends on ", el)
 	}
@@ -182,10 +182,8 @@ func main() {
 		fmt.Println("find's subcommand summoned")
 		fmt.Println(args[2:])
 		for _, item := range args[2:] {
-			if path, found := findPackage(item); found {
+			if p, found := findPackage(item); found {
 				fmt.Println("Pacakage available:", item)
-				fmt.Println(path)
-				p := tomlToPackage(path + "/dist.toml")
 				p.details()
 			} else {
 				fmt.Println("Pacakage Unavailable:", item)
@@ -195,5 +193,18 @@ func main() {
 		fmt.Println("Cache point: ", getCachePath())
 		fmt.Println("Manifest point: ", getManifestPath())
 		fmt.Println("Repo point: ", getLocalRepo())
+	case "help":
+		fmt.Println(`
+usage: kartini <opts> [args,...]
+
+opts:
+	add	<package name>	install builded packages
+	build	<package name>	build package
+	env			check environment variables
+	find	<package name>	find package by name 
+	get	<package name>	download package resources
+	help			this message
+
+		`)
 	}
 }

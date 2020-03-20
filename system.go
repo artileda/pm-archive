@@ -36,14 +36,12 @@ func isInstalled(name string) bool {
 }
 
 func isCached(name string) bool {
-	path, found := findPackage(name)
+	p, found := findPackage(name)
 	if !found {
 		errPackNotExist()
 	}
-	p := tomlToPackage(path + "/dist.toml")
-	path = getCachePath() + "/" + p.Name
 	for _, item := range p.Sources {
-		if !isExist(path + "/" + lastStr(splitStr(item[0], "/"))) {
+		if !isExist(getCachePath() + "/sources/" + p.Name + "/" + lastStr(splitStr(item[0], "/"))) {
 			return false
 		}
 	}
