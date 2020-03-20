@@ -1,0 +1,16 @@
+name="bash"
+version="1.0.2"
+depends=[
+	"gcc",
+  "musl"
+  ]
+
+# [uri,extract dir]
+sources=[
+	["http://htpps/"],
+  ["http://htpps/","mpr"]
+]
+
+buildscript="""
+#!/bin/sh
+"""
