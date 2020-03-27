@@ -5,7 +5,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"regexp"
+	"os/exec"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -18,25 +19,6 @@ type Package struct {
 	Buildscript string
 	Prescript   *string
 	Postscript  *string
-}
-
-func uriMatcher(uri string) (string, string) {
-	gitMatch := regexp.MustCompile(`(git+:\/\/)+`)
-	httpMatch := regexp.MustCompile(`(:\/\/)`)
-	localMatch := regexp.MustCompile(`(.)+`)
-	tarMatch := regexp.MustCompile(`(:\/\/)?(tar)+`)
-
-	switch {
-	case gitMatch.MatchString(uri):
-		return uri, "git"
-	case tarMatch.MatchString(uri):
-		return uri, "tar"
-	case httpMatch.MatchString(uri):
-		return uri, "http"
-	case localMatch.MatchString(uri):
-		return uri, "local"
-	}
-	return uri, ""
 }
 
 func (p Package) Download() {
@@ -78,6 +60,7 @@ func (p Package) Download() {
 			fmt.Println("tar: TBD")
 		case types == "git":
 			fmt.Println("git : TBD")
+			gitclone(lastStr(splitStr(el[0], "+")), "")
 		case types == "local":
 			fmt.Println("local: TBD")
 		}
@@ -102,6 +85,7 @@ func (p Package) satisfy() ([]string, bool) {
 }
 
 func (p Package) build() {
+
 	depends, satisfied := p.satisfy()
 	if len(depends) != 0 && satisfied {
 		fmt.Println("[!] Dependencies not satisfied...")
@@ -110,11 +94,70 @@ func (p Package) build() {
 		}
 		os.Exit(1)
 	}
+
+	srcpath := getCachePath() + "/source-" + getPid() + "/" + p.Name
+	if !isExist(srcpath) {
+		fmt.Println("[!] No source unique cache dir created")
+		os.Exit(1)
+	} else {
+		os.MkdirAll(srcpath, 0755)
+		e := makeFile([]byte(p.Buildscript), srcpath+"/build.sh")
+		if e != nil {
+
+		}
+	}
+
+	binpath := getCachePath() + "/binary-" + getPid() + "/" + p.Name
+	manifestPath := binpath + "/var/db/kartini/installed/" + p.Name
+	// make dummy system environment likes
+	os.MkdirAll(binpath, 0755)
+
+	if p.Prescript != nil {
+		e := makeFile([]byte(*p.Prescript), manifestPath+"/preinstall.sh")
+		if e != nil {
+
+		}
+		//exec.Command("sh", srcpath+"/preinstall.sh", binpath)
+	}
+
+	// run build script
+	exec.Command("sh", srcpath+"/build.sh", binpath)
+	manifest := scanDir(binpath)
+	fmt.Println(manifest)
+
+	// create manifest subfolder
+
+	os.MkdirAll(manifestPath, 0755)
+
+	manifestFile, e := os.Create(manifestPath + "/manifest")
+	if e != nil {
+
+	}
+	// for making fingerprint	// make manifest
+	for _, item := range manifest {
+		hash := hashFile(item)
+		truePath := strings.Split(item, binpath)[1]
+		manifestFile.Write([]byte(truePath + " " + hash))
+	}
+
+	if p.Postscript != nil {
+		e := makeFile([]byte(*p.Postscript), srcpath+"/postinstall.sh")
+		if e != nil {
+
+		}
+		//exec.Command("sh", srcpath+"/preinstall.sh", binpath)
+	}
+
+	//Archive this
+	taring(manifest,
+		getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz")
+
 }
 
 func (p Package) extract(path string) {
 	var caches string = (getCachePath() + "/source/" + p.Name)
 	for _, item := range p.Sources {
+		// target untar should be temporary caches
 		untar(caches+"/"+lastStr(splitStr(item[0], "/")), caches)
 	}
 }
@@ -206,5 +249,10 @@ opts:
 	help			this message
 
 		`)
+	case "id":
+		fmt.Println("PID: ", os.Getpid())
+		fmt.Println("PPID: ", os.Getppid())
+	case "mother":
+		fmt.Println("")
 	}
 }
