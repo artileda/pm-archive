@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/src-d/go-git"
+	"gopkg.in/src-d/go-git.v4"
 )
 
 func splitStr(s string, delimeter string) []string {
@@ -26,6 +26,10 @@ func gitclone(url string, out string) {
 		fmt.Println(e)
 		return
 	}
+}
+
+func taring(path []string,dest string) error{
+	return archiver.Archive(path,dest)
 }
 
 func untar(path string, dest string) error {
