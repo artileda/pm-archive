@@ -154,12 +154,21 @@ func (p Package) build() {
 
 }
 
+func (p Package) install() {
+	bin := getCachePath() + "/binary/" + p.Name + "%" + p.Version + ".tar.xz"
+	untar(getFileSystem(), bin)
+}
+
 func (p Package) extract(path string) {
 	var caches string = (getCachePath() + "/source/" + p.Name)
 	for _, item := range p.Sources {
 		// target untar should be temporary caches
 		untar(caches+"/"+lastStr(splitStr(item[0], "/")), caches)
 	}
+}
+
+func (p Package) remove(){
+	
 }
 
 func (p Package) details() {
