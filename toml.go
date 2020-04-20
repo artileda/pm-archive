@@ -5,8 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"bufio"
-	//os/exec"
+	"os/exec"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -95,9 +94,8 @@ func (p Package) build() {
 		}
 		os.Exit(1)
 	}
-	makeTempCacheDir()
+
 	srcpath := getCachePath() + "/source-" + getPid() + "/" + p.Name
-	os.Mkdir(srcpath,0755)
 	if !isExist(srcpath) {
 		fmt.Println("[!] No source unique cache dir created")
 		os.Exit(1)
@@ -113,7 +111,6 @@ func (p Package) build() {
 	manifestPath := binpath + "/var/db/kartini/installed/" + p.Name
 	// make dummy system environment likes
 	os.MkdirAll(binpath, 0755)
-	os.MkdirAll(manifestPath, 0755)
 
 	if p.Prescript != nil {
 		e := makeFile([]byte(*p.Prescript), manifestPath+"/preinstall.sh")
@@ -124,31 +121,25 @@ func (p Package) build() {
 	}
 
 	// run build script
-	runCmd("sh", srcpath+"/build.sh", binpath)
-
-	//fmt.Println(string(out))
+	exec.Command("sh", srcpath+"/build.sh", binpath)
 	manifest := scanDir(binpath)
-
-
-//	fmt.Println(manifest)
-//	fmt.Println(binpath)
+	fmt.Println(manifest)
 
 	// create manifest subfolder
 
+	os.MkdirAll(manifestPath, 0755)
+
 	manifestFile, e := os.Create(manifestPath + "/manifest")
 	if e != nil {
-		fmt.Println(e)
-	}
-		// for making fingerprint	// make manifest
 
+	}
+	// for making fingerprint	// make manifest
 	for _, item := range manifest {
 		hash := hashFile(item)
 		truePath := strings.Split(item, binpath)[1]
 		manifestFile.Write([]byte(truePath + " " + hash))
 	}
-	manifest = append(manifest,manifestPath + "/manifest")
-	manifestFile.Write([]byte(manifestPath + "/manifest"+ " " + hashFile(manifestPath + "/manifest")))
-	
+
 	if p.Postscript != nil {
 		e := makeFile([]byte(*p.Postscript), srcpath+"/postinstall.sh")
 		if e != nil {
@@ -157,22 +148,9 @@ func (p Package) build() {
 		//exec.Command("sh", srcpath+"/preinstall.sh", binpath)
 	}
 
-	for index,element := range manifest{
-		manifest[index] = "."+splitStr(element,binpath)[1]
-	}
-
-	//fmt.Println(manifest)
 	//Archive this
-	os.Chdir(binpath)
-	s,_ := os.Getwd()
-	fmt.Println(s)
-//	fmt.Println(taring(
-//		manifest,
-//		getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz"))
-	runCmd("tar",
-	"-cvf",
-	getCachePath() + "/binary/"+ p.Name + "%"+ p.Version + ".tar.xz",
-	".")
+	taring(manifest,
+		getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz")
 
 }
 
@@ -182,29 +160,6 @@ func (p Package) extract(path string) {
 		// target untar should be temporary caches
 		untar(caches+"/"+lastStr(splitStr(item[0], "/")), caches)
 	}
-}
-
-func (p Package) install(){
-	binpath := getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz"
-//	fmt.Println(binpath)
-//	fmt.Println(os.Getenv("KARTINI_ROOT"))
-	runCmd("tar","-xvf",binpath,"-C",os.Getenv("KARTINI_ROOT"))
-}
-func (p Package) remove(){
-	manifestPath := getManifestPath() +"/" + p.Name
-	fmt.Println(manifestPath)
-	f,_ := os.Open(manifestPath + "/manifest")
-	scan := bufio.NewScanner(f)
-	scan.Split(bufio.ScanLines)
-	//var manifestList []string
-
-	for scan.Scan(){
-		//fmt.Println(scan.Text())
-		//nifestList = append(manifestList,
-		os.Remove(os.Getenv("KARTINI_ROOT") +"/" + splitStr(scan.Text()," ")[0])
-	}
-	// this still not remove a manifest folder
-	//fmt.Println(manifestList)
 }
 
 func (p Package) details() {
@@ -246,7 +201,6 @@ func main() {
 		fmt.Println("opts supplied: ", args[2:])
 		for _, item := range args[2:] {
 			fmt.Println("Shall added : ", item)
-			installPackage(item)
 		}
 	case "build":
 		fmt.Println("build's subcommand summoned")
@@ -254,14 +208,11 @@ func main() {
 		for _, item := range args[2:] {
 			extractPackage(item)
 		}
-	case "gv":
-		runCmd("go","version")
 	case "del":
 		fmt.Println("del's subcommand summoned")
 		fmt.Println("opts supplied: ", args[2:])
 		for _, item := range args[2:] {
 			fmt.Println("Shall deleted : ", item)
-			removePackage(item)
 		}
 	case "get":
 		fmt.Println("get's subcommand summoned")

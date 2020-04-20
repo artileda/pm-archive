@@ -29,14 +29,7 @@ func gitclone(url string, out string) {
 }
 
 func taring(path []string,dest string) error{
-	tar := &archiver.Tar{
-		MkdirAll: true,
-	}
-	xz := archiver.TarXz{
-		Tar: tar,
-	}
-	e := xz.Archive(path,dest)
-	return e
+	return archiver.Archive(path,dest)
 }
 
 func untar(path string, dest string) error {
