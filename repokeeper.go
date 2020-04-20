@@ -32,9 +32,10 @@ func getPackage(name string) {
 func installPackage(name string) {
 	p, found := findPackage(name)
 	if !found {
+		fmt.Println("Package not Found")
 		os.Exit(1)
 	}
-	p.Download()
+	p.install()
 }
 
 func extractPackage(name string) {
@@ -44,9 +45,17 @@ func extractPackage(name string) {
 	}
 	fmt.Println("[", name, "] Extarcting resources...")
 	p.extract("")
+	buildPackage(p)
 }
-func buildPackage(name string) {
-
+func buildPackage(p Package){
+	p.build()
 }
 func removePackage(name string) {
+	p,f := findPackage(name)
+	if !f{
+		fmt.Println("["+name+"] not installed!")
+		return
+	}
+	p.remove()
+
 }
