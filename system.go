@@ -2,45 +2,21 @@ package main
 
 import (
 	"fmt"
-//	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
-//	"strings"
-	//"time"
 	"os/exec"
-//	"bufio"
 
-
-	//"github.com/src-d/go-git/utils/ioutil"
 	"golang.org/x/crypto/sha3"
-//	"github.com/go-cmd/cmd"
 )
 
 func runCmd(sh string,args ...string){
-	fmt.Println(args)
 	cmd,e := exec.Command(sh,args...).Output()
 	if e != nil{
 	  fmt.Println(e)
 	}
 	fmt.Println(string(cmd))
-
-/*	buf := bufio.NewReader(stdout)
-	num := 1
-	for{
-	   line,_,e := buf.ReadLine()
-	   if e == io.EOF {
-	      break
-	   }
-	   if e != nil{
-		fmt.Println(e)
-		break
-	   }
-	   num += 1
-	   fmt.Println(string(line))
-	}
-*/
 }
 
 func hashThese(b []byte) string {
@@ -58,7 +34,6 @@ func hashFile(p string) string {
 }
 
 func getPid() string {
-	fmt.Println(strconv.Itoa(os.Getpid()))
 	return strconv.Itoa(os.Getpid())
 }
 func getManifestPath() string {
@@ -75,10 +50,8 @@ func getCachePath() string {
 }
 
 func scanDir(path string) []string {
-	fmt.Println(path)
 	files := []string{}
 	e := filepath.Walk(path, func(path string, info os.FileInfo, e error) error {
-		fmt.Println(path)
 		if !info.IsDir() {
 			files = append(files, path)
 		}
@@ -122,6 +95,8 @@ func isCached(name string) bool {
 	}
 	return true
 }
+
+// this for make cache dir
 func makePersistCacheDir() {
 	if getCachePath() == "" {
 		fmt.Println("KARTINI_CACHE variable need be set up")
@@ -163,7 +138,7 @@ func makeTempCacheDir() []string {
 		return []string{}
 	} else {
 		var dir = []string{
-			getCachePath() + "/bin-" + getPid(),
+			getCachePath() + "/binary-" + getPid(),
 			getCachePath() + "/source-" + getPid(),
 		}
 		for _, d := range dir {
@@ -174,7 +149,19 @@ func makeTempCacheDir() []string {
 }
 
 func removeTempCacheDir() {
-
+	if getCachePath() == "" {
+		fmt.Println("KARTINI_CACHE variable need be set up")
+		return
+	} else {
+		var dir = []string{
+			getCachePath() + "/binary-" + getPid(),
+			getCachePath() + "/source-" + getPid(),
+		}
+		for _, d := range dir {
+			os.RemoveAll(d)
+		}
+		return
+	}
 }
 
 func cleanStep() {
@@ -185,7 +172,3 @@ func errPackNotExist() {
 	fmt.Println("[!] Package not exist on local repos")
 	os.Exit(1)
 }
-
-// func makeManifest(tomlpath string) bool {
-
-// }

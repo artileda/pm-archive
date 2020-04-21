@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-// Refactor : Return Package Object instead string and bool
+
 func findPackage(name string) (Package, bool) {
 	repo := getLocalRepo()
 	found := false
