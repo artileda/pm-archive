@@ -234,6 +234,17 @@ func main() {
 		fmt.Println("[?] Needs supplied by argument")
 		os.Exit(1)
 	}
+	switch ""{
+	case os.Getenv("KARTINI_ROOT"):
+		fmt.Println("[!] KARTINIT_ROOT need be set")
+		os.Exit(1)
+	case os.Getenv("KARTINI_PATH"):
+		fmt.Println("[!] KARTINI_PATH need be set")
+		os.Exit(1)
+	case os.Getenv("KARTINI_CACHE"):
+		fmt.Println("[!] KARTINI_CACHE need be set")
+		os.Exit(1)
+	}
 
 	switch args[1] {
 	case "add":
