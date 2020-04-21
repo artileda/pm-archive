@@ -5,12 +5,17 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"bufio"
 	"os/exec"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"time"
 )
 
+
+// this package is reflection
+// from dist.toml on each package
 type Package struct {
 	Name        string
 	Version     string
@@ -51,6 +56,8 @@ func (p Package) Download() {
 		if types != "" {
 			fmt.Println(types)
 		}
+		// this for match
+		// url type by regex
 		switch {
 		case types == "http":
 			getHTTPRes(el[0])
@@ -64,17 +71,15 @@ func (p Package) Download() {
 		case types == "local":
 			fmt.Println("local: TBD")
 		}
-		// if len(el) == 2 {
-		// 	fmt.Println("URL : ", el[0], ", Extraction point :", el[1])
-		// } else if len(el) == 1 {
-		// 	fmt.Println("URI: ", el[0])
-		// }
 	}
 }
 
 func (p Package) satisfy() ([]string, bool) {
 	depends := []string{}
 	satisfied := true
+	// this for iterate 
+	// dependencies list on
+	// manifest file
 	for _, item := range p.Depends {
 		if !isInstalled(item) {
 			depends = append(depends, item)
@@ -86,6 +91,7 @@ func (p Package) satisfy() ([]string, bool) {
 
 func (p Package) build() {
 
+	// Checking for dependencies
 	depends, satisfied := p.satisfy()
 	if len(depends) != 0 && satisfied {
 		fmt.Println("[!] Dependencies not satisfied...")
@@ -95,7 +101,10 @@ func (p Package) build() {
 		os.Exit(1)
 	}
 
+	// Make temporary dir
+	makeTempCacheDir()
 	srcpath := getCachePath() + "/source-" + getPid() + "/" + p.Name
+	os.Mkdir(srcpath,0755)
 	if !isExist(srcpath) {
 		fmt.Println("[!] No source unique cache dir created")
 		os.Exit(1)
@@ -107,50 +116,64 @@ func (p Package) build() {
 		}
 	}
 
+	// make binary path and manifestpath for included when
+	// archived
 	binpath := getCachePath() + "/binary-" + getPid() + "/" + p.Name
 	manifestPath := binpath + "/var/db/kartini/installed/" + p.Name
 	// make dummy system environment likes
 	os.MkdirAll(binpath, 0755)
+	os.MkdirAll(manifestPath, 0755)
 
 	if p.Prescript != nil {
 		e := makeFile([]byte(*p.Prescript), manifestPath+"/preinstall.sh")
 		if e != nil {
 
 		}
-		//exec.Command("sh", srcpath+"/preinstall.sh", binpath)
+		exec.Command("sh", srcpath+"/preinstall.sh", binpath)
 	}
 
 	// run build script
-	exec.Command("sh", srcpath+"/build.sh", binpath)
+	runCmd("sh", srcpath+"/build.sh", binpath)
+
+	// scan path for all builded files
 	manifest := scanDir(binpath)
-	fmt.Println(manifest)
-
-	// create manifest subfolder
-
-	os.MkdirAll(manifestPath, 0755)
 
 	manifestFile, e := os.Create(manifestPath + "/manifest")
 	if e != nil {
-
+		fmt.Println(e)
 	}
-	// for making fingerprint	// make manifest
+
+	// this for index all builded file
+	// to manifest list in file
 	for _, item := range manifest {
 		hash := hashFile(item)
 		truePath := strings.Split(item, binpath)[1]
 		manifestFile.Write([]byte(truePath + " " + hash))
 	}
+	manifest = append(manifest,manifestPath + "/manifest")
+	manifestFile.Write([]byte(manifestPath + "/manifest"+ " " + hashFile(manifestPath + "/manifest")))
 
+	// this will execute postscript
+	// if available
 	if p.Postscript != nil {
 		e := makeFile([]byte(*p.Postscript), srcpath+"/postinstall.sh")
 		if e != nil {
 
 		}
-		//exec.Command("sh", srcpath+"/preinstall.sh", binpath)
+		exec.Command("sh", srcpath+"/preinstall.sh", binpath)
 	}
 
-	//Archive this
-	taring(manifest,
-		getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz")
+	for index,element := range manifest{
+		manifest[index] = "."+splitStr(element,binpath)[1]
+	}
+
+	// Change dir to binpath and make archive
+	os.Chdir(binpath)
+	runCmd("tar",
+	"-cvf",
+	getCachePath() + "/binary/"+ p.Name + "%"+ p.Version + ".tar.xz",
+	".")
+	removeTempCacheDir()
 
 }
 
@@ -167,14 +190,29 @@ func (p Package) extract(path string) {
 	}
 }
 
+func (p Package) install(){
+	// archiving whole file and folder inside
+	// binpath
+	binpath := getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz"
+	runCmd("tar","-xvf",binpath,"-C",os.Getenv("KARTINI_ROOT"))
+}
 func (p Package) remove(){
-	
+
+	// Remove file based on manifest files 
+	// each lines
+	manifestPath := getManifestPath() +"/" + p.Name
+	f,_ := os.Open(manifestPath + "/manifest")
+	scan := bufio.NewScanner(f)
+	scan.Split(bufio.ScanLines)
+
+	for scan.Scan(){
+		os.Remove(os.Getenv("KARTINI_ROOT") +"/" + splitStr(scan.Text()," ")[0])
+	}
 }
 
 func (p Package) details() {
-	fmt.Println("Nama : ", p.Name)
-	fmt.Println("Versi : ", p.Version)
-	//p.Download()
+	fmt.Println("name : ", p.Name)
+	fmt.Println("version : ", p.Version)
 	for _, el := range p.Depends {
 		fmt.Println("Depends on ", el)
 	}
@@ -191,51 +229,53 @@ func tomlToPackage(pathToml string) Package {
 }
 
 func main() {
-	// p := new(Package)
-	// _, e := toml.DecodeFile("./package.toml", &p)
-	// if e != nil {
-	// 	fmt.Println(e)
-	// }
 
+	// this router for
+	// connecting user terminal
+	// input with desired one
 	args := os.Args
+	now := time.Now()
 	if len(args) < 2 {
 		fmt.Println("[?] Needs supplied by argument")
 		os.Exit(1)
 	}
+	switch ""{
+	case os.Getenv("KARTINI_ROOT"):
+		fmt.Println("[!] KARTINIT_ROOT need be set")
+		os.Exit(1)
+	case os.Getenv("KARTINI_PATH"):
+		fmt.Println("[!] KARTINI_PATH need be set")
+		os.Exit(1)
+	case os.Getenv("KARTINI_CACHE"):
+		fmt.Println("[!] KARTINI_CACHE need be set")
+		os.Exit(1)
+	}
 
-	//fmt.Println(args[1])
 	switch args[1] {
 	case "add":
-		fmt.Println("add's subcommand summoned")
-		fmt.Println("opts supplied: ", args[2:])
 		for _, item := range args[2:] {
 			fmt.Println("Shall added : ", item)
+			installPackage(item)
 		}
 	case "build":
-		fmt.Println("build's subcommand summoned")
-		fmt.Println("opts supplie: ", args[2:])
 		for _, item := range args[2:] {
 			extractPackage(item)
 		}
+	case "gv":
+		runCmd("go","version")
 	case "del":
-		fmt.Println("del's subcommand summoned")
-		fmt.Println("opts supplied: ", args[2:])
 		for _, item := range args[2:] {
 			fmt.Println("Shall deleted : ", item)
+			removePackage(item)
 		}
 	case "get":
-		fmt.Println("get's subcommand summoned")
-		fmt.Println("opts supplied: ", args[2:])
 		for _, item := range args[2:] {
 			fmt.Println("Shall searched: ", item)
 			getPackage(item)
 		}
 	case "find":
-		fmt.Println("find's subcommand summoned")
-		fmt.Println(args[2:])
 		for _, item := range args[2:] {
 			if p, found := findPackage(item); found {
-				fmt.Println("Pacakage available:", item)
 				p.details()
 			} else {
 				fmt.Println("Pacakage Unavailable:", item)
@@ -264,4 +304,5 @@ opts:
 	case "mother":
 		fmt.Println("")
 	}
+	fmt.Println("["+ args[1] + "] done in " + time.Now().Sub(now).String()+ "")
 }
