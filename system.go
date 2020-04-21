@@ -49,6 +49,10 @@ func getCachePath() string {
 	return os.Getenv("KARTINI_CACHE")
 }
 
+func getFileSystem() string {
+	return os.Getenv("KARTINI_ROOT")
+}
+
 func scanDir(path string) []string {
 	files := []string{}
 	e := filepath.Walk(path, func(path string, info os.FileInfo, e error) error {
