@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mholt/archiver/v3"
 	"gopkg.in/src-d/go-git.v4"
 )
 
@@ -29,18 +28,18 @@ func gitclone(url string, out string) {
 }
 
 func taring(path []string,dest string) error{
-	tar := &archiver.Tar{
+	/*tar := &archiver.Tar{
 		MkdirAll: true,
 	}
 	xz := archiver.TarXz{
 		Tar: tar,
 	}
-	e := xz.Archive(path,dest)
-	return e
+	e := xz.Archive(path,dest)*/
+	return nil
 }
 
 func untar(path string, dest string) error {
-	return archiver.Unarchive(path, dest)
+	return nil //archiver.Unarchive(path, dest)
 }
 
 func uriMatcher(uri string) (string, string) {
