@@ -17,6 +17,21 @@ Then,
 ./kartini help
 ```
 
+## Make Package
+
+This format following TOML.
+```toml
+name="kartini_base"
+version="0.1"
+depends=[
+  # this contain depend with a package
+]
+sources=[
+  # this contain source
+  ["http://uwu/kartini.tar.xz"]
+]
+```
+
 ### License
 
 [MIT](./LICENSE)

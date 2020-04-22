@@ -39,7 +39,7 @@ func taring(path []string,dest string) error{
 }
 
 func untar(path string, dest string) error {
-	return nil //archiver.Unarchive(path, dest)
+	return nil // archiver.Unarchive(path, dest)
 }
 
 func uriMatcher(uri string) (string, string) {

@@ -133,7 +133,8 @@ func (p Package) build() {
 	}
 
 	// run build script
-	runCmd("sh", srcpath+"/build.sh", binpath)
+	os.Chdir(srcpath)
+	runCmd("sh", "./build.sh", binpath)
 
 	// scan path for all builded files
 	manifest := scanDir(binpath)
@@ -179,9 +180,11 @@ func (p Package) build() {
 
 func (p Package) extract(path string) {
 	var caches string = (getCachePath() + "/source/" + p.Name)
+	var temp string = (getCachePath() + "/source-"+ getPid() + "/"+ p.Name)
+	os.MkdirAll(temp,755)
 	for _, item := range p.Sources {
 		// target untar should be temporary caches
-		untar(caches+"/"+lastStr(splitStr(item[0], "/")), caches)
+		runCmd("tar","-xf",caches+"/"+lastStr(splitStr(item[0], "/")),"--strip-components=1","-C",temp)
 	}
 }
 
