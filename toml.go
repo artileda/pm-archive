@@ -149,10 +149,10 @@ func (p Package) build() {
 	for _, item := range manifest {
 		hash := hashFile(item)
 		truePath := strings.Split(item, binpath)[1]
-		manifestFile.Write([]byte(truePath + " " + hash))
+		manifestFile.Write([]byte(truePath + " " + hash + "\n"))
 	}
 	manifest = append(manifest,manifestPath + "/manifest")
-	manifestFile.Write([]byte(manifestPath + "/manifest"+ " " + hashFile(manifestPath + "/manifest")))
+	manifestFile.Write([]byte(manifestPath + "/manifest"+ " " + hashFile(manifestPath + "/manifest")+ "\n"))
 
 	// this will execute postscript
 	// if available
@@ -209,7 +209,7 @@ func (p Package) remove(){
 	scan.Split(bufio.ScanLines)
 
 	for scan.Scan(){
-		os.Remove(os.Getenv("KARTINI_ROOT") +"/" + splitStr(scan.Text()," ")[0])
+		os.RemoveAll(os.Getenv("KARTINI_ROOT") +"/" + splitStr(scan.Text()," ")[0])
 	}
 }
 
