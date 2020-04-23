@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"os/exec"
+	b64 "encoding/base64"
 
 	"golang.org/x/crypto/sha3"
 )
@@ -22,7 +23,7 @@ func runCmd(sh string,args ...string){
 func hashThese(b []byte) string {
 	hash := make([]byte, 64)
 	sha3.ShakeSum256(hash, b)
-	return string(hash)
+	return b64.StdEncoding.EncodeToString(hash)
 }
 
 func hashFile(p string) string {
