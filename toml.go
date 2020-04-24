@@ -17,13 +17,14 @@ import (
 // this package is reflection
 // from dist.toml on each package
 type Package struct {
-	Name        string
-	Version     string
-	Depends     []string
-	Sources     [][]string
-	Buildscript string
-	Prescript   *string
-	Postscript  *string
+	Name        string  // pacakage name
+	Version     string  // pagkage version
+	Depends     []string // pagkage run-time dependes
+	Makedepends []string // pagkage compile-time dependes 
+	Sources     [][]string // sources
+	Buildscript string // build script
+	Prescript   *string // pre-install script
+	Postscript  *string // post-install script
 }
 
 func (p Package) Download() {
@@ -74,6 +75,22 @@ func (p Package) Download() {
 	}
 }
 
+func (p Package) satisfymake() ([]string,bool){
+	depends := []string{}
+	satisfied := true
+	// this for iterate 
+	// dependencies list on
+	// manifest file
+	for _, item := range p.Makedepends {
+		if !isInstalled(item) {
+			depends = append(depends, item)
+			satisfied = false
+		}
+	}
+	return depends, satisfied
+
+}
+
 func (p Package) satisfy() ([]string, bool) {
 	depends := []string{}
 	satisfied := true
@@ -92,7 +109,7 @@ func (p Package) satisfy() ([]string, bool) {
 func (p Package) build() {
 
 	// Checking for dependencies
-	depends, satisfied := p.satisfy()
+	depends, satisfied := p.satisfymake()
 	if len(depends) != 0 && satisfied {
 		fmt.Println("[!] Dependencies not satisfied...")
 		for _, item := range depends {
@@ -191,6 +208,14 @@ func (p Package) extract(path string) {
 func (p Package) install(){
 	// archiving whole file and folder inside
 	// binpath
+	depends, satisfied := p.satisfy()
+	if len(depends) != 0 && satisfied {
+		fmt.Println("[!] Dependencies not satisfied...")
+		for _, item := range depends {
+			fmt.Println("- ", item)
+		}
+		os.Exit(1)
+	}
 	binpath := getCachePath()+"/binary/"+p.Name+"%"+p.Version+".tar.xz"
 	runCmd("tar","-xvf",binpath,"-C",os.Getenv("KARTINI_ROOT"))
 }
