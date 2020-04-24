@@ -81,6 +81,12 @@ func (p Package) satisfymake() ([]string,bool){
 	// this for iterate 
 	// dependencies list on
 	// manifest file
+
+	if !isCached(p.Name){
+	  fmt.Println("["+p.Name+"] Need get packages source, run kartini get "+ p.Name)
+	  return
+	}
+	fmt.Println("["+p.Name+"] Checking dependencies...")
 	for _, item := range p.Makedepends {
 		if !isInstalled(item) {
 			depends = append(depends, item)
