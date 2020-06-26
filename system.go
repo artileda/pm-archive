@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -32,6 +33,25 @@ func hashFile(p string) string {
 		return e.Error()
 	}
 	return hashThese(file)
+}
+
+func copyFile(srcpath string,dstpath string) error{
+	srcbuffer ,err := os.Open(srcpath)
+	if err != nil{
+		return err
+	}
+	defer srcbuffer.Close()
+
+	dstbuffer,err := os.Create(dstpath)
+	if err != nil {
+		return err
+	}
+	defer dstbuffer.Close()
+
+	if _,err = io.Copy(dstbuffer,srcbuffer); err != nil{
+		return err
+	}
+	return dstbuffer.Sync()
 }
 
 func getPid() string {

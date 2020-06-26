@@ -25,6 +25,7 @@ type Package struct {
 	Buildscript string // build script
 	Prescript   *string // pre-install script
 	Postscript  *string // post-install script
+	TomlPath *string 
 }
 
 func (p Package) Download() {
@@ -84,7 +85,7 @@ func (p Package) satisfymake() ([]string,bool){
 
 	if !isCached(p.Name){
 	  fmt.Println("["+p.Name+"] Need get packages source, run kartini get "+ p.Name)
-	  return
+	  return depends,false
 	}
 	fmt.Println("["+p.Name+"] Checking dependencies...")
 	for _, item := range p.Makedepends {
@@ -207,7 +208,13 @@ func (p Package) extract(path string) {
 	os.MkdirAll(temp,755)
 	for _, item := range p.Sources {
 		// target untar should be temporary caches
-		runCmd("tar","-xf",caches+"/"+lastStr(splitStr(item[0], "/")),"--strip-components=1","-C",temp)
+		_,types := uriMatcher(item[0])
+		switch{
+		case types == "tar":
+			runCmd("tar","-xf",caches+"/"+lastStr(splitStr(item[0], "/")),"--strip-components=1","-C",temp)
+		case types == "local":
+			copyFile(caches + item[0], temp + item[0])
+		}
 	}
 }
 
@@ -254,6 +261,7 @@ func tomlToPackage(pathToml string) Package {
 		fmt.Println("[!] Invalid package descriptor:", e)
 		os.Exit(1)
 	}
+	p.TomlPath = &pathToml
 	return *p
 }
 
@@ -270,7 +278,7 @@ func main() {
 	}
 	switch ""{
 	case os.Getenv("KARTINI_ROOT"):
-		fmt.Println("[!] KARTINIT_ROOT need be set")
+		fmt.Println("[!] KARTINI_ROOT need be set")
 		os.Exit(1)
 	case os.Getenv("KARTINI_PATH"):
 		fmt.Println("[!] KARTINI_PATH need be set")
