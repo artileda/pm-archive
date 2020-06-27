@@ -13,6 +13,9 @@ func splitStr(s string, delimeter string) []string {
 	return strings.Split(s, delimeter)
 }
 func lastStr(s []string) string {
+	if len(s) < 2 {
+		return s[0]
+	}
 	return s[len(s)-1]
 }
 

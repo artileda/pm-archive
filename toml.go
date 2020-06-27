@@ -25,7 +25,7 @@ type Package struct {
 	Buildscript string // build script
 	Prescript   *string // pre-install script
 	Postscript  *string // post-install script
-	TomlPath *string 
+	TomlPath string
 }
 
 func (p Package) Download() {
@@ -71,7 +71,8 @@ func (p Package) Download() {
 			fmt.Println("git : TBD")
 			gitclone(lastStr(splitStr(el[0], "+")), "")
 		case types == "local":
-			fmt.Println("local: TBD")
+			copyFile(p.TomlPath + "/" + el[0],path + "/" + el[0])
+			fmt.Println("local: TBD",p.TomlPath)
 		}
 	}
 }
@@ -158,6 +159,7 @@ func (p Package) build() {
 
 	// run build script
 	os.Chdir(srcpath)
+	//runCmd("ls","-la")
 	runCmd("sh", "./build.sh", binpath)
 
 	// scan path for all builded files
@@ -213,7 +215,7 @@ func (p Package) extract(path string) {
 		case types == "tar":
 			runCmd("tar","-xf",caches+"/"+lastStr(splitStr(item[0], "/")),"--strip-components=1","-C",temp)
 		case types == "local":
-			copyFile(caches + item[0], temp + item[0])
+			copyFile(caches + "/" + item[0], temp + "/" + item[0])
 		}
 	}
 }
@@ -261,7 +263,8 @@ func tomlToPackage(pathToml string) Package {
 		fmt.Println("[!] Invalid package descriptor:", e)
 		os.Exit(1)
 	}
-	p.TomlPath = &pathToml
+	path := splitStr(pathToml,"/")
+	p.TomlPath = strings.Join(path[:len(path)-1],"/")
 	return *p
 }
 
